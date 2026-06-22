@@ -2,51 +2,65 @@
 <html>
 <head>
   <title>Todo App</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; }
+    h1 { color: #333; }
+    input { padding: 8px; width: 70%; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    li { margin: 8px 0; padding: 8px; background: #f9f9f9; border-radius: 4px; }
+    .delete-btn { background: #dc3545; margin-left: 10px; }
+  </style>
 </head>
 <body>
 
-<h1>Todo List</h1>
+<h1>📝 Todo List</h1>
 
-<input id="taskInput" placeholder="Enter task">
-<button onclick="addTask()">Add</button>
+<input id="taskInput" placeholder="Enter a new task...">
+<button onclick="addTask()">Add Task</button>
 
 <ul id="taskList"></ul>
 
 <script>
-const API = "http://localhost:5000/tasks";
+  const BACKEND_HOST = window.location.hostname;
+  const API = "http://" + BACKEND_HOST + ":5000/tasks";
 
-async function loadTasks() {
-  const res = await fetch(API);
-  const tasks = await res.json();
+  async function loadTasks() {
+    try {
+      const res = await fetch(API);
+      const tasks = await res.json();
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+      tasks.forEach((t) => {
+        const li = document.createElement("li");
+        li.innerHTML = t.task +
+          " <button class='delete-btn' onclick='deleteTask(" + t.id + ")'>Delete</button>";
+        list.appendChild(li);
+      });
+    } catch (err) {
+      console.error("Could not connect to backend:", err);
+    }
+  }
 
-  const list = document.getElementById("taskList");
-  list.innerHTML = "";
+  async function addTask() {
+    const input = document.getElementById("taskInput");
+    const task = input.value.trim();
+    if (!task) return;
+    await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({task})
+    });
+    input.value = "";
+    loadTasks();
+  }
 
-  tasks.forEach((t, i) => {
-    const li = document.createElement("li");
-    li.innerHTML = t.task + " <button onclick='deleteTask("+i+")'>X</button>";
-    list.appendChild(li);
-  });
-}
-
-async function addTask() {
-  const task = document.getElementById("taskInput").value;
-
-  await fetch(API, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({task})
-  });
+  async function deleteTask(id) {
+    await fetch(API + "/" + id, {method: "DELETE"});
+    loadTasks();
+  }
 
   loadTasks();
-}
-
-async function deleteTask(id) {
-  await fetch(API + "/" + id, {method: "DELETE"});
-  loadTasks();
-}
-
-loadTasks();
 </script>
 
 </body>
