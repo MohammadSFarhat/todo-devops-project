@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Todo App Staging Environment - Jenkins + Staging EC2
+
+Parameters:
+  KeyName:
+    Description: EC2 Key Pair Name
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+
+  # ── VPC ──────────────────────────────────────────
+  TodoVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: todo-vpc
+
+  # ── Internet Gateway ─────────────────────────────
+  TodoIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: todo-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref TodoVPC
+      InternetGatewayId: !Ref TodoIGW
+
+  # ── Subnet ───────────────────────────────────────
+  TodoSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref TodoVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: todo-subnet
+
+  # ── Route Table ──────────────────────────────────
+  TodoRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref TodoVPC
+
+  TodoRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref TodoRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref TodoIGW
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref TodoSubnet
+      RouteTableId: !Ref TodoRouteTable
+
+  # ── Security Group ───────────────────────────────
+  TodoSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Todo App Security Group
+      VpcId: !Ref TodoVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: todo-sg
+
+  # ── Jenkins EC2 ──────────────────────────────────
+  JenkinsEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      ImageId: ami-0faab6bdbac9486fb
+      SubnetId: !Ref TodoSubnet
+      SecurityGroupIds:
+        - !Ref TodoSecurityGroup
+      Tags:
+        - Key: Name
+          Value: jenkins-server
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y openjdk-21-jre docker.io git python3 python3-pip
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ubuntu
+
+  # ── Staging EC2 ──────────────────────────────────
+  StagingEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      ImageId: ami-0faab6bdbac9486fb
+      SubnetId: !Ref TodoSubnet
+      SecurityGroupIds:
+        - !Ref TodoSecurityGroup
+      Tags:
+        - Key: Name
+          Value: staging-server
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt update -y
+          apt install -y docker.io
+          systemctl enable docker
+          systemctl start docker
+          usermod -aG docker ubuntu
+
+Outputs:
+  JenkinsURL:
+    Description: Jenkins Server URL
+    Value: !Sub http://${JenkinsEC2.PublicIp}:8080
+
+  StagingFrontendURL:
+    Description: Staging Frontend URL
+    Value: !Sub http://${StagingEC2.PublicIp}
+
+  StagingBackendURL:
+    Description: Staging Backend URL
+    Value: !Sub http://${StagingEC2.PublicIp}:5000
+
+  JenkinsIP:
+    Description: Jenkins Server IP
+    Value: !GetAtt JenkinsEC2.PublicIp
+
+  StagingIP:
+    Description: Staging Server IP
+    Value: !GetAtt StagingEC2.PublicIp

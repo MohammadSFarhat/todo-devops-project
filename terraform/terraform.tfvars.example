@@ -1,7 +1,0 @@
-aws_region    = "us-east-1"
-instance_type = "t2.micro"
-key_name      = "todo-devops-key"
-
-allowed_ip = "0.0.0.0/0"
-
-public_key = "ssh-rsa REPLACE_WITH_YOUR_PUBLIC_KEY"
