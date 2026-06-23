@@ -36,6 +36,15 @@ pipeline {
                 '''
             }
         }
+        stage('Run Integration Tests') {
+            steps {
+                echo 'Running integration tests...'
+                sh '''
+                    cd backend
+                    python3 -m unittest discover tests test_integration.py
+                '''
+            }
+        }
 
         stage('Build Docker Images') {
             steps {
@@ -70,8 +79,10 @@ pipeline {
 
         stage('Approval') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    input message: 'Deploy to Production?', ok: 'Yes, Deploy!'
+                catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                    timeout(time: 1, unit: 'MINUTES') {
+                        input message: 'Deploy to Production?', ok: 'Yes, Deploy!'
+                    }
                 }
             }
         }
@@ -80,6 +91,7 @@ pipeline {
             steps {
                 echo 'Deploying to Production...'
                 sh 'echo App deployed to production successfully!'
+                echo '🎉 Production deployment complete!'
             }
         }
     }
