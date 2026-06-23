@@ -96,7 +96,7 @@ Resources:
   JenkinsEC2:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.medium
+      InstanceType: t3.micro
       KeyName: !Ref KeyName
       ImageId: ami-0faab6bdbac9486fb
       SubnetId: !Ref TodoSubnet
@@ -108,17 +108,55 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          apt update -y
-          apt install -y openjdk-21-jre docker.io git python3 python3-pip
+          set -e
+
+          # Update system
+          apt-get update -y
+
+          # Install Java (Jenkins needs it)
+          apt-get install -y openjdk-21-jre
+
+          # Install Jenkins via WAR file (most reliable method)
+          apt-get install -y wget
+          mkdir -p /opt/jenkins
+          wget -O /opt/jenkins/jenkins.war https://get.jenkins.io/war-stable/latest/jenkins.war
+
+          # Install other tools
+          apt-get install -y docker.io git python3 python3-pip
           systemctl enable docker
           systemctl start docker
           usermod -aG docker ubuntu
+
+          # Install pytest
+          pip3 install pytest --break-system-packages
+
+          # Create Jenkins systemd service
+          cat > /etc/systemd/system/jenkins.service << 'EOF'
+          [Unit]
+          Description=Jenkins
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          ExecStart=java -jar /opt/jenkins/jenkins.war --httpPort=8080
+          Restart=always
+          RestartSec=10
+          Environment="JENKINS_HOME=/home/ubuntu/.jenkins"
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          # Start Jenkins
+          systemctl daemon-reload
+          systemctl enable jenkins
+          systemctl start jenkins
 
   # ── Staging EC2 ──────────────────────────────────
   StagingEC2:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       KeyName: !Ref KeyName
       ImageId: ami-0faab6bdbac9486fb
       SubnetId: !Ref TodoSubnet
@@ -130,8 +168,8 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          apt update -y
-          apt install -y docker.io
+          apt-get update -y
+          apt-get install -y docker.io
           systemctl enable docker
           systemctl start docker
           usermod -aG docker ubuntu
