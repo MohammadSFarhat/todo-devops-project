@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
     environment {
         STAGING_SERVER = "18.156.129.129"
         STAGING_USER = "ubuntu"
@@ -36,6 +40,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Run Integration Tests') {
             steps {
                 echo 'Running integration tests...'
@@ -91,17 +96,20 @@ pipeline {
             steps {
                 echo 'Deploying to Production...'
                 sh 'echo App deployed to production successfully!'
-                echo '🎉 Production deployment complete!'
+                echo 'Production deployment complete!'
             }
         }
     }
 
     post {
+        always {
+            echo 'Pipeline finished!'
+        }
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed — check the logs!'
         }
     }
 }
