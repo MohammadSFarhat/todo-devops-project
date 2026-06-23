@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        STAGING_SERVER = "STAGING_EC2_IP"
+        STAGING_SERVER = "18.156.129.129"
         STAGING_USER = "ubuntu"
+        SSH_KEY = "/home/ubuntu/.ssh/jenkins_key"
         APP_NAME = "todo-app"
     }
 
@@ -51,10 +52,10 @@ pipeline {
                     docker save todo-backend:latest > todo-backend.tar
                     docker save todo-frontend:latest > todo-frontend.tar
 
-                    scp -o StrictHostKeyChecking=no todo-backend.tar ${STAGING_USER}@${STAGING_SERVER}:/home/ubuntu/
-                    scp -o StrictHostKeyChecking=no todo-frontend.tar ${STAGING_USER}@${STAGING_SERVER}:/home/ubuntu/
+                    scp -i ${SSH_KEY} -o StrictHostKeyChecking=no todo-backend.tar ${STAGING_USER}@${STAGING_SERVER}:/home/ubuntu/
+                    scp -i ${SSH_KEY} -o StrictHostKeyChecking=no todo-frontend.tar ${STAGING_USER}@${STAGING_SERVER}:/home/ubuntu/
 
-                    ssh -o StrictHostKeyChecking=no ${STAGING_USER}@${STAGING_SERVER} '
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${STAGING_USER}@${STAGING_SERVER} '
                         docker load < /home/ubuntu/todo-backend.tar
                         docker load < /home/ubuntu/todo-frontend.tar
                         docker stop todo-backend todo-frontend 2>/dev/null || true
