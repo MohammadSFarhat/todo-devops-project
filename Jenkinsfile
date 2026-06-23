@@ -39,8 +39,9 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                echo 'Building Docker images...'
+                echo 'Building backend Docker image...'
                 sh 'docker build -t todo-backend:latest -f docker/Dockerfile.backend .'
+                echo 'Building frontend Docker image...'
                 sh 'docker build -t todo-frontend:latest -f docker/Dockerfile.frontend .'
             }
         }

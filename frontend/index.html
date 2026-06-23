@@ -1,66 +1,274 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Todo App</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; }
-    h1 { color: #333; }
-    input { padding: 8px; width: 70%; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    li { margin: 8px 0; padding: 8px; background: #f9f9f9; border-radius: 4px; }
-    .delete-btn { background: #dc3545; margin-left: 10px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo App</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family: Inter, Arial, sans-serif;
+    background:#0f172a;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:700px;
+    background:#ffffff;
+    border-radius:24px;
+    padding:35px;
+    box-shadow:0 25px 50px rgba(0,0,0,.25);
+}
+
+.header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.header h1{
+    color:#0f172a;
+    font-size:2rem;
+    margin-bottom:8px;
+}
+
+.header p{
+    color:#64748b;
+}
+
+.input-area{
+    display:flex;
+    gap:12px;
+    margin-bottom:25px;
+}
+
+input{
+    flex:1;
+    padding:15px;
+    border:2px solid #e2e8f0;
+    border-radius:12px;
+    font-size:16px;
+}
+
+input:focus{
+    outline:none;
+    border-color:#3b82f6;
+}
+
+.add-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:15px 24px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.2s;
+}
+
+.add-btn:hover{
+    background:#1d4ed8;
+}
+
+.stats{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.badge{
+    background:#dbeafe;
+    color:#1e40af;
+    padding:8px 14px;
+    border-radius:999px;
+    font-weight:600;
+}
+
+ul{
+    list-style:none;
+}
+
+li{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px;
+    background:#f8fafc;
+    margin-bottom:12px;
+    border-radius:14px;
+    border:1px solid #e2e8f0;
+    transition:.2s;
+}
+
+li:hover{
+    transform:translateY(-2px);
+}
+
+.task{
+    color:#1e293b;
+    font-size:16px;
+}
+
+.delete-btn{
+    background:#ef4444;
+    color:white;
+    border:none;
+    padding:10px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+}
+
+.delete-btn:hover{
+    background:#dc2626;
+}
+
+.empty{
+    text-align:center;
+    color:#94a3b8;
+    padding:40px 0;
+    font-size:18px;
+}
+
+.footer{
+    margin-top:25px;
+    text-align:center;
+    color:#64748b;
+    font-size:14px;
+}
+</style>
 </head>
+
 <body>
 
-<h1>📝 Todo List</h1>
+<div class="container">
 
-<input id="taskInput" placeholder="Enter a new task...">
-<button onclick="addTask()">Add Task</button>
+    <div class="header">
+        <h1>🚀 Todo App</h1>
+        <p>Cloud Native DevOps Project</p>
+    </div>
 
-<ul id="taskList"></ul>
+    <div class="input-area">
+        <input id="taskInput" placeholder="What needs to be done?">
+        <button class="add-btn" onclick="addTask()">Add Task</button>
+    </div>
+
+    <div class="stats">
+        <h3>Your Tasks</h3>
+        <div class="badge">
+            <span id="taskCount">0</span> Tasks
+        </div>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    <div class="footer">
+        AWS • Docker • Jenkins • Flask
+    </div>
+
+</div>
 
 <script>
-  const BACKEND_HOST = window.location.hostname;
-  const API = "http://" + BACKEND_HOST + ":5000/tasks";
 
-  async function loadTasks() {
+const BACKEND_HOST = window.location.hostname;
+const API = "http://" + BACKEND_HOST + ":5000/tasks";
+
+async function loadTasks() {
+
     try {
-      const res = await fetch(API);
-      const tasks = await res.json();
-      const list = document.getElementById("taskList");
-      list.innerHTML = "";
-      tasks.forEach((t) => {
-        const li = document.createElement("li");
-        li.innerHTML = t.task +
-          " <button class='delete-btn' onclick='deleteTask(" + t.id + ")'>Delete</button>";
-        list.appendChild(li);
-      });
-    } catch (err) {
-      console.error("Could not connect to backend:", err);
-    }
-  }
 
-  async function addTask() {
+        const response = await fetch(API);
+        const tasks = await response.json();
+
+        const list = document.getElementById("taskList");
+        const counter = document.getElementById("taskCount");
+
+        list.innerHTML = "";
+        counter.innerText = tasks.length;
+
+        if(tasks.length === 0){
+            list.innerHTML =
+            "<div class='empty'>✨ No tasks yet. Add your first task.</div>";
+            return;
+        }
+
+        tasks.forEach(task => {
+
+            const li = document.createElement("li");
+
+            li.innerHTML = `
+                <span class="task">${task.task}</span>
+                <button class="delete-btn"
+                    onclick="deleteTask(${task.id})">
+                    Delete
+                </button>
+            `;
+
+            list.appendChild(li);
+
+        });
+
+    } catch(error) {
+
+        document.getElementById("taskList").innerHTML =
+        "<div class='empty'>⚠️ Cannot connect to backend.</div>";
+
+        console.error(error);
+    }
+}
+
+async function addTask(){
+
     const input = document.getElementById("taskInput");
     const task = input.value.trim();
-    if (!task) return;
-    await fetch(API, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({task})
+
+    if(!task) return;
+
+    await fetch(API,{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({task})
     });
+
     input.value = "";
-    loadTasks();
-  }
 
-  async function deleteTask(id) {
-    await fetch(API + "/" + id, {method: "DELETE"});
     loadTasks();
-  }
+}
 
-  loadTasks();
+async function deleteTask(id){
+
+    await fetch(API + "/" + id,{
+        method:"DELETE"
+    });
+
+    loadTasks();
+}
+
+document
+.getElementById("taskInput")
+.addEventListener("keypress",function(e){
+
+    if(e.key === "Enter"){
+        addTask();
+    }
+
+});
+
+loadTasks();
+
 </script>
 
 </body>
